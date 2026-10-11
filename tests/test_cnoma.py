@@ -44,7 +44,7 @@ def test_training_epsilon_reaches_floor_and_records_curves():
 def test_ris_cnoma_environment_exposes_combined_actions():
     env = RISEnvironment(seed=7, max_steps=2)
     obs = env.reset(priority="CRITICAL")
-    assert obs["cnoma_success_probability"].shape == (3, 8, 3)
+    assert obs["cnoma_delivery_feasibility"].shape == (3, 8, 3)
     assert env.n_actions == 3 * 8 * 3 + 1
     action = int(np.flatnonzero(env.action_mask(obs))[0])
     _, _, _, info = env.step(action, packet="critical")
