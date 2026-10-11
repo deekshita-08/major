@@ -132,7 +132,7 @@ class RISEnvironment:
             result["available"] = (
                 result["snr_db"] >= -3.0
             )
-        result["cnoma_success_probability"] = self._cnoma_probability(result)
+        result["cnoma_delivery_feasibility"] = self._cnoma_probability(result)
         return result
 
     def observe(self):
