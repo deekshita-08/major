@@ -145,7 +145,7 @@ def run_episode(env, policy, episode_seed, priority, scenario, agent=None):
             break
 
     return {
-        "seed": episode_seed,
+        "eval_seed": episode_seed,
         "policy": policy,
         "scenario": scenario,
         "priority": priority,
