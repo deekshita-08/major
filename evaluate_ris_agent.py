@@ -70,11 +70,21 @@ def choose_action(env, observation, policy, rng, fixed_action=None):
     if policy == "random":
         return int(rng.choice(valid))
     if policy == "fixed":
-        return 0 if mask[0] else int(valid[0])
-    if policy == "best_fixed":
+        # Hold the RIS at configuration zero. If no channel is feasible at
+        # that configuration, wait rather than silently switching the RIS.
+        fixed_ris_actions = [
+            int(action)
+            for action in valid
+            if action != env.wait_action
+            and env.action_to_tuple(int(action))[1] == 0
+        ]
+        return fixed_ris_actions[0] if fixed_ris_actions else env.wait_action
+    if policy == "initial_greedy":
+        # Select one greedy action from the initial observation and keep it.
+        # If it becomes infeasible, wait rather than changing the baseline.
         if fixed_action is not None and mask[fixed_action]:
             return fixed_action
-        return int(valid[0])
+        return env.wait_action
     raise ValueError(f"Unknown policy {policy}")
 
 
