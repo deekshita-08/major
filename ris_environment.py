@@ -140,7 +140,7 @@ class RISEnvironment:
         self._last_observation = {
             "snr_db": observed["snr_db"].copy(),
             "success_probability": observed["success_probability"].copy(),
-            "cnoma_success_probability": observed["cnoma_success_probability"].copy(),
+            "cnoma_delivery_feasibility": observed["cnoma_delivery_feasibility"].copy(),
             "latency_ms": observed["latency_ms"].copy(),
             "throughput_mbps": observed["throughput_mbps"].copy(),
             "available": observed["available"].copy(),
@@ -295,7 +295,7 @@ class RISEnvironment:
     def greedy_baseline_action(self, observation=None):
         observation = observation or self._last_observation or self.observe()
         available = observation["available"]
-        p = observation["cnoma_success_probability"]
+        p = observation["cnoma_delivery_feasibility"]
         latency = observation["latency_ms"]
         throughput = observation["throughput_mbps"]
         weight = PRIORITY_WEIGHT[self.priority]
