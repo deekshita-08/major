@@ -91,7 +91,7 @@ class QLearningRISAgent:
             block = int(action) % (self.n_channels * self.n_ris_configs)
             power = int(action) // (self.n_channels * self.n_ris_configs)
             channel, ris_config = divmod(block, self.n_ris_configs)
-            probability = float(observation["cnoma_success_probability"][channel, ris_config, power])
+            probability = float(observation["cnoma_delivery_feasibility"][channel, ris_config, power])
             latency = float(observation["latency_ms"][channel, ris_config])
             throughput = float(observation["throughput_mbps"][channel, ris_config])
             switch_cost = (
