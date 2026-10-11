@@ -32,6 +32,23 @@ Use the project virtual environment on Windows:
 
 The default RIS inference path does not update the Q-table. Learning is opt-in through the `learn` flag.
 
+## Weather provider
+
+Weather data is fetched from Visual Crossing. Set `VISUAL_CROSSING_API_KEY` in the process environment before starting the API or CLI:
+
+```sh
+export VISUAL_CROSSING_API_KEY=YOUR_API_KEY
+```
+
+In PowerShell, use `$env:VISUAL_CROSSING_API_KEY = "YOUR_API_KEY"` instead.
+
+Docker Compose forwards this variable to the API container. For Kubernetes, create the expected Secret before applying the deployment:
+
+```sh
+kubectl -n floodai create secret generic visual-crossing-api \
+	--from-literal=api-key="$VISUAL_CROSSING_API_KEY"
+```
+
 ## Evaluation
 
 The simulator compares:

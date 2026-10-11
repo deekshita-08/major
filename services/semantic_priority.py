@@ -41,8 +41,8 @@ def build_semantic_priorities(weather, flood_state_data):
             rainfall.get("current_rain_mm") is not None,
             rules["rainfall_current"],
             "mm",
-            "Open-Meteo model-derived current weather",
-            "model_derived",
+            "Visual Crossing current weather",
+            "provider_derived",
             rainfall.get("current_time"),
         ),
         "rainfall_last_6h": (
@@ -50,8 +50,8 @@ def build_semantic_priorities(weather, flood_state_data):
             rainfall.get("last_6h_precipitation_mm") is not None,
             rules["rainfall_last_6h"],
             "mm",
-            "Open-Meteo model-derived hourly precipitation",
-            "model_derived",
+            "Visual Crossing hourly precipitation",
+            "provider_derived",
             rainfall.get("current_time"),
         ),
         "water_level": (

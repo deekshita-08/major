@@ -31,7 +31,7 @@ def run(region, communication_attempts=5, seed=2026, learn=False):
     data = analyze_flood_state(weather, discharge, water)
 
     current = weather["current"]
-    print("\nWEATHER (Open-Meteo model-derived data)")
+    print("\nWEATHER (Visual Crossing data)")
     for label, key, unit in [
         ("Observation time", "time", ""),
         ("Temperature", "temperature_c", " C"),
@@ -41,7 +41,7 @@ def run(region, communication_attempts=5, seed=2026, learn=False):
     ]:
         print(f"{label}: {show(current.get(key), unit)}")
 
-    print("\nRAINFALL ACCUMULATION (Open-Meteo model-derived hourly precipitation)")
+    print("\nRAINFALL ACCUMULATION (Visual Crossing hourly precipitation)")
     for hours in (1, 3, 6, 24):
         print(
             f"Last {hours}h: "

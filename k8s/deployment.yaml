@@ -25,6 +25,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: floodai-api-config
+          env:
+            - name: VISUAL_CROSSING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: visual-crossing-api
+                  key: api-key
+                  optional: true
           readinessProbe:
             httpGet:
               path: /api/health
