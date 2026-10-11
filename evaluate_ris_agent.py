@@ -33,14 +33,24 @@ SCENARIOS = {
         "flow_velocity_mps": 1.8,
     },
 }
-POLICIES = ("agent", "random", "fixed", "best_fixed", "myopic_noisy", "oracle")
+POLICIES = ("agent", "random", "fixed", "initial_greedy", "myopic_noisy", "oracle")
 
 
-def bootstrap_ci(values, seed=2026, samples=2000):
-    values = np.asarray(
-        [value for value in values if value is not None and np.isfinite(value)],
-        dtype=float,
-    )
+def bootstrap_ci(values, seed=2026, samples=2000, cluster_ids=None):
+    """Bootstrap means; optionally resample independent evaluation-seed clusters."""
+    values = np.asarray(values, dtype=float)
+    valid = np.isfinite(values)
+    values = values[valid]
+    if cluster_ids is not None:
+        clusters = np.asarray(cluster_ids)[valid]
+        if values.size:
+            values = np.asarray(
+                [
+                    np.mean(values[clusters == cluster])
+                    for cluster in np.unique(clusters)
+                ],
+                dtype=float,
+            )
     if values.size == 0:
         return None, None
     rng = np.random.default_rng(seed)
@@ -84,7 +94,9 @@ def run_episode(env, policy, episode_seed, priority, scenario, agent=None):
     env.agent = agent
     rng = np.random.default_rng(episode_seed + 991)
     fixed_action = (
-        env.greedy_baseline_action(observation) if policy == "best_fixed" else None
+        env.greedy_baseline_action(observation)
+        if policy == "initial_greedy"
+        else None
     )
 
     delivered = 0
@@ -103,15 +115,18 @@ def run_episode(env, policy, episode_seed, priority, scenario, agent=None):
         observation, reward, done, info = env.step(action)
         rewards.append(reward)
         reconfigs += int(info["changed_ris"])
-        sic_successes.append(float(bool(info["sic_success"])))
+        if info["selected_channel"] is not None:
+            # Include failed transmissions too; successful-only SNR/latency
+            # would bias the link-quality metrics upward.
+            latency.append(float(info["latency_ms"]))
+            snr.append(float(info["snr_db"]))
+            sic_successes.append(float(bool(info["sic_success"])))
 
         if info["delivered"]:
             delivered += 1
             weighted_delivered += PRIORITY_WEIGHT[priority]
             if priority == "CRITICAL":
                 critical_delivered += 1
-            latency.append(info["latency_ms"])
-            snr.append(info["snr_db"])
             aoi = float(info["latency_ms"])
         else:
             aoi += float(info["latency_ms"] or 100.0)
@@ -131,9 +146,7 @@ def run_episode(env, policy, episode_seed, priority, scenario, agent=None):
             if priority == "CRITICAL"
             else np.nan
         ),
-        "priority_weighted_delivery": (
-            weighted_delivered / (env.max_steps * PRIORITY_WEIGHT[priority])
-        ),
+        "priority_weighted_delivery": weighted_delivered / env.max_steps,
         "mean_latency_ms": float(np.mean(latency)) if latency else np.nan,
         "mean_aoi_ms": float(np.mean(aoi_samples)),
         "mean_snr_db": float(np.mean(snr)) if snr else np.nan,
@@ -166,19 +179,25 @@ def _aggregate(rows, keys, metrics):
     output = []
     for key, subset in grouped.items():
         result = dict(zip(keys, key))
+        cluster_field = (
+            "seed" if "seed" in subset[0]
+            else "eval_seed" if "eval_seed" in subset[0]
+            else None
+        )
         for metric in metrics:
-            values = np.asarray(
-                [
-                    row[metric]
-                    for row in subset
-                    if row[metric] is not None and np.isfinite(row[metric])
-                ],
-                dtype=float,
-            )
+            valid_rows = [
+                row for row in subset
+                if row[metric] is not None and np.isfinite(row[metric])
+            ]
+            values = np.asarray([row[metric] for row in valid_rows], dtype=float)
             result[f"{metric}_mean"] = (
                 float(np.mean(values)) if values.size else np.nan
             )
-            low, high = bootstrap_ci(values)
+            clusters = (
+                [row[cluster_field] for row in valid_rows]
+                if cluster_field is not None else None
+            )
+            low, high = bootstrap_ci(values, cluster_ids=clusters)
             result[f"{metric}_ci95_low"] = low
             result[f"{metric}_ci95_high"] = high
         output.append(result)
@@ -291,6 +310,11 @@ def train_and_evaluate(
         },
         "policies": list(POLICIES),
         "priorities": list(PRIORITY_WEIGHT),
+        "confidence_intervals": {
+            "method": "percentile bootstrap over evaluation-seed cluster means",
+            "bootstrap_samples": 2000,
+            "seed": 2026,
+        },
         "outputs": [
             "ris_episode_results.csv",
             "ris_summary.csv",
@@ -301,6 +325,9 @@ def train_and_evaluate(
         "notes": [
             "All channel, RIS, SNR, latency, delivery and AoI values are software simulations.",
             "Evaluation seeds are disjoint from training seeds.",
+            "Confidence intervals resample independent evaluation-seed clusters, not repeated training-seed rows.",
+            "The fixed policy holds RIS configuration zero and waits when it is infeasible.",
+            "The initial_greedy policy locks the first greedy action and waits if it becomes infeasible.",
             "The oracle policy uses perfect current information and is a reference upper case.",
         ],
     }
