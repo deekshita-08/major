@@ -219,16 +219,16 @@ class RISEnvironment:
                 float(self.measurements["snr_db"][second, selected_ris]),
                 power_profile,
                 critical_user=critical_user,
-                noise_db=-90.0 + float(self.measurements["rain_attenuation_db"]),
             )
             critical_decoded = (
                 cnoma_result.user1_decoded
                 if critical_user == 1
                 else cnoma_result.user2_decoded
             )
-            delivered = bool(critical_decoded and self.rng.random() < max(
-                0.05, float(self.measurements["success_probability"][selected_channel, selected_ris])
-            ))
+            # Single outage model: delivery occurs iff the critical stream decodes
+            # under the CNOMA/SIC SINR threshold. The channel's sigmoid is used
+            # only as a latency proxy, not as a second packet-delivery lottery.
+            delivered = bool(critical_decoded)
             channel_condition = (
                 "GOOD" if snr_db >= 10 else
                 "MODERATE" if snr_db >= 5 else
@@ -272,6 +272,9 @@ class RISEnvironment:
             "user1_sinr_db": cnoma_result.user1_sinr_db if cnoma_result else None,
             "user2_sinr_db": cnoma_result.user2_sinr_db if cnoma_result else None,
             "sic_success": cnoma_result.sic_success if cnoma_result else False,
+            "cnoma_weak_user": cnoma_result.weak_user if cnoma_result else None,
+            "cnoma_strong_user": cnoma_result.strong_user if cnoma_result else None,
+            "delivery_model": "threshold_outage",
             "cnoma_user1_decoded": cnoma_result.user1_decoded if cnoma_result else False,
             "cnoma_user2_decoded": cnoma_result.user2_decoded if cnoma_result else False,
             "latency_ms": latency_ms,
