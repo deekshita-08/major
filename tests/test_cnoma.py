@@ -1,7 +1,7 @@
 import numpy as np
 
 from cnoma import CNOMASimulator
-from ris_agent import QLearningRISAgent
+from ris_agent import QLearningRISAgent, train_agent
 from ris_environment import RISEnvironment
 
 
@@ -33,7 +33,7 @@ def test_cnoma_power_assignment_follows_channel_order_not_user_index():
 def test_training_epsilon_reaches_floor_and_records_curves():
     env = RISEnvironment(seed=19, max_steps=1)
     agent = QLearningRISAgent(seed=19)
-    rewards = __import__("ris_agent").train_agent(agent, env, episodes=5, max_steps=1)
+    rewards = train_agent(agent, env, episodes=5, max_steps=1)
     assert len(rewards) == 5
     assert len(agent.training_epsilon_history) == 5
     assert len(agent.training_episode_rewards) == 5
@@ -54,7 +54,7 @@ def test_ris_cnoma_environment_exposes_combined_actions():
     assert "power_user1" in info
     assert info["delivery_model"] == "threshold_outage"
     critical_decoded = info["cnoma_user1_decoded"]
-    assert info["delivered"] is bool(critical_decoded) if info["priority"] == "CRITICAL" else isinstance(info["delivered"], bool)
+    assert info["delivered"] == critical_decoded
 
 
 def test_agent_action_space_matches_cnoma_environment():
