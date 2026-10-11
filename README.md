@@ -38,16 +38,16 @@ The simulator compares:
 
 - RIS-CNOMA Q-learning agent under partial/noisy/delayed observations
 - random policy
-- fixed policy
-- best-fixed policy
+- fixed-RIS policy (RIS configuration zero; waits if it is infeasible)
+- initial-greedy locked-action policy (locks its first greedy action; waits if infeasible)
 - myopic policy under noisy/delayed observations
 - perfect-CSI oracle reference
 
 The oracle is **not** the proposed system. It is an ideal reference that has perfect current channel information, so it helps quantify the performance gap caused by partial observability.
 
-The evaluation uses at least 10 independent training seeds and disjoint evaluation seeds. Episode-level results are written to `outputs/ris_episode_results.csv`; aggregate means and bootstrap 95% confidence intervals are written to `outputs/ris_summary.csv`. Priority-wise latency/AoI results are written to `outputs/ris_priority_summary.csv`, the learned-value 0.0 versus default-weight ablation is written to `outputs/ris_weight_ablation.csv`, per-training-seed episode rewards and epsilon values are written to `outputs/ris_training_curves.csv`, and run metadata is written to `outputs/experiment_metadata.json`. The training schedule decays epsilon to its configured floor by 80% of the requested episode count; `plot_results.py` generates reward and epsilon plots from the saved training CSV.
+The evaluation uses at least 10 independent training seeds and disjoint evaluation seeds. Episode-level results are written to `outputs/ris_episode_results.csv`; aggregate means and seed-cluster bootstrap 95% confidence intervals are written to `outputs/ris_summary.csv`. Confidence intervals resample independent evaluation-seed clusters rather than treating repeated training-seed results on the same evaluation seed as independent. Priority-wise latency/AoI results are written to `outputs/ris_priority_summary.csv`, the learned-value 0.0 versus default-weight ablation is written to `outputs/ris_weight_ablation.csv`, per-training-seed episode rewards and epsilon values are written to `outputs/ris_training_curves.csv`, and run metadata is written to `outputs/experiment_metadata.json`. The training schedule decays epsilon to its configured floor by 80% of the requested episode count; `plot_results.py` generates reward and epsilon plots from the saved training CSV.
 
-Metrics include delivery ratio, critical-message delivery, priority-weighted delivery, latency, Age of Information (AoI), SNR, SINR, CNOMA SIC success, RIS reconfigurations and reward.
+Metrics include delivery ratio, critical-message delivery, priority-weighted delivered messages per step, mean latency and SNR across attempted transmissions (including failed deliveries), Age of Information (AoI), CNOMA SIC success across attempted transmissions, RIS reconfigurations and reward. Because the evaluation currently uses only five independent evaluation seeds by default, confidence intervals may be wide and should be interpreted cautiously.
 
 Results must be interpreted as simulated results. Whether the learned policy beats a baseline is determined from the generated CSVs, not from manually entered values.
 
