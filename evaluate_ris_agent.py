@@ -66,9 +66,10 @@ def _aggregate(rows,keys,metrics):
  return output
 
 def train_and_evaluate(train_seeds,eval_seeds,episodes,eval_episodes_per_seed,steps,output_dir,learned_weight):
- output_dir.mkdir(parents=True,exist_ok=True);episode_rows=[]
+ output_dir.mkdir(parents=True,exist_ok=True);episode_rows=[];training_rows=[]
  for train_seed in train_seeds:
-  env=RISEnvironment(seed=train_seed,max_steps=steps,observation_mode="partial");agent=QLearningRISAgent(seed=train_seed,learned_value_weight=learned_weight);train_agent(agent,env,episodes=episodes,max_steps=steps)
+  env=RISEnvironment(seed=train_seed,max_steps=steps,observation_mode="partial");agent=QLearningRISAgent(seed=train_seed,learned_value_weight=learned_weight);rewards=train_agent(agent,env,episodes=episodes,max_steps=steps)
+  training_rows.extend({"train_seed":train_seed,"episode":episode+1,"total_reward":float(reward),"epsilon":float(agent.training_epsilon_history[episode]),"simulation_only":True} for episode,reward in enumerate(rewards))
   if train_seed==train_seeds[0]:agent.save(output_dir.parent/"models"/"ris_q_table.npz")
   for eval_seed in eval_seeds:
    for repeat in range(eval_episodes_per_seed):
@@ -78,10 +79,11 @@ def train_and_evaluate(train_seeds,eval_seeds,episodes,eval_episodes_per_seed,st
       for policy in POLICIES:
        eval_env=RISEnvironment(seed=episode_seed,max_steps=steps,observation_mode="partial");row=run_episode(eval_env,policy,episode_seed,priority,scenario,agent);row["train_seed"]=train_seed;row["learned_value_weight"]=learned_weight;episode_rows.append(row)
  _write_csv(output_dir/"ris_episode_results.csv",episode_rows)
+ _write_csv(output_dir/"ris_training_curves.csv",training_rows)
  metrics=["delivery_rate","critical_delivery_rate","priority_weighted_delivery","mean_latency_ms","mean_aoi_ms","mean_snr_db","ris_reconfigurations","mean_reward","cnoma_sic_success_rate"]
  summary=_aggregate(episode_rows,["policy","scenario"],metrics);_write_csv(output_dir/"ris_summary.csv",summary)
  priority_summary=_aggregate(episode_rows,["policy","scenario","priority"],["delivery_rate","mean_latency_ms","mean_aoi_ms","priority_weighted_delivery","cnoma_sic_success_rate"]);_write_csv(output_dir/"ris_priority_summary.csv",priority_summary)
- metadata={"created_utc":datetime.now(timezone.utc).isoformat(),"simulation_only":True,"training_seeds":list(train_seeds),"evaluation_seeds":list(eval_seeds),"evaluation_repeats_per_seed":eval_episodes_per_seed,"training_episodes_per_seed":episodes,"steps_per_episode":steps,"learned_value_weight":learned_weight,"observation_scenarios":SCENARIOS,"cnoma":{"users":2,"sic":True,"power_profiles":3},"policies":list(POLICIES),"priorities":list(PRIORITY_WEIGHT),"outputs":["ris_episode_results.csv","ris_summary.csv","ris_priority_summary.csv","ris_weight_ablation.csv"],"notes":["All channel, RIS, SNR, latency, delivery and AoI values are software simulations.","Evaluation seeds are disjoint from training seeds.","The oracle policy uses perfect current information and is a reference upper case."]}
+ metadata={"created_utc":datetime.now(timezone.utc).isoformat(),"simulation_only":True,"training_seeds":list(train_seeds),"evaluation_seeds":list(eval_seeds),"evaluation_repeats_per_seed":eval_episodes_per_seed,"training_episodes_per_seed":episodes,"steps_per_episode":steps,"learned_value_weight":learned_weight,"observation_scenarios":SCENARIOS,"cnoma":{"users":2,"sic":True,"power_profiles":3},"policies":list(POLICIES),"priorities":list(PRIORITY_WEIGHT),"outputs":["ris_episode_results.csv","ris_summary.csv","ris_priority_summary.csv","ris_weight_ablation.csv","ris_training_curves.csv"],"notes":["All channel, RIS, SNR, latency, delivery and AoI values are software simulations.","Evaluation seeds are disjoint from training seeds.","The oracle policy uses perfect current information and is a reference upper case."]}
  (output_dir/"experiment_metadata.json").write_text(json.dumps(metadata,indent=2),encoding="utf-8");return episode_rows,summary
 
 def run_weight_ablation(train_seeds,eval_seeds,episodes,steps,output_dir,default_weight):
